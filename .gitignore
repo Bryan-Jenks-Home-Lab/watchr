@@ -5,3 +5,7 @@
 **/*.env
 **/.DS_store
 .vscode/
+
+# temporary ignores
+test-and-build-azure-pipeline.yml
+TODO.md
