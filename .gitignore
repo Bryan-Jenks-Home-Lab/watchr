@@ -1,0 +1,7 @@
+**/__pycache__/
+**/.pytest_cache/
+**/.idea
+**/poetry.lock
+**/*.env
+**/.DS_store
+.vscode/
