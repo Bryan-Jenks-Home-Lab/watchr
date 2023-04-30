@@ -44,6 +44,35 @@ TODO provide list of variables and their uses
 
 TODO process documentation
 
+## Installation
+
+---
+
+Pull image from ghcr.io
+
+```sh
+docker pull ghcr.io/bryan-jenks-home-lab/etl_strong_app:main
+```
+
+Run image
+
+```sh
+docker run -d \
+    -e DB_CONNECTION_STRING='postgresql+psycopg2://<USER>:<PASSWORD>@<SERVER>:<PORT>/<DATABASE>' \
+    -e EXPECTED_FILE=strong.csv \
+    -e TARGET_TABLE=<DATABASE>.<SCHEMA>.<TABLE_NAME> \
+    -e WATCH_PATH=/data/inbound \
+    -e STAGING_PATH=/data/outbound \
+    -e PROCESSED_PATH=/data/processed \
+    -v /<PATH_ON_YOUR_MACHINE>/strong_app_import/inbound:/data/inbound \
+    -v /<PATH_ON_YOUR_MACHINE>/strong_app_import/outbound:/data/outbound \
+    -v /<PATH_ON_YOUR_MACHINE>/strong_app_import/processed:/data/processed \
+    ghcr.io/bryan-jenks-home-lab/etl_strong_app:main
+```
+
+---
+
+
 ### Outputs
 
 - Data Payload into target database table
