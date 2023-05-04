@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "etl_strong_app"
-version = "0.1.1"
+version = "0.1.2"
 description = "Picking up and processing files for personal finances and accounting"
 authors = ["Bryan Jenks <bryan@bryanjenks.dev>"]
 
