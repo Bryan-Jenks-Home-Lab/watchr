@@ -16,11 +16,16 @@ from common import (
     load_data_into_dataframe,
 )
 from config import Settings
+from database import WorkoutData
 
 
 class MonitorFolder(FileSystemEventHandler):
     def __init__(self) -> None:
         log.info("Starting ETL Strong App")
+        db = WorkoutData()
+        db.set_table_name(Settings().target_table.split(".")[2])
+        db.set_table_schema(Settings().target_table.split(".")[1])
+        db.validate_table_exists()
 
     def on_created(self, event):
         def get_filename() -> str:
