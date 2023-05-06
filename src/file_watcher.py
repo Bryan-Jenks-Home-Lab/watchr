@@ -74,7 +74,7 @@ class MonitorFolder(FileSystemEventHandler):
         if get_filename() == Settings().expected_file:
             move_file_to_staging_location()
             append_data_to_target_table(
-                df=process_data(),
+                process_data(),
                 schema=Settings().target_table.split(".")[1],
                 table=Settings().target_table.split(".")[2],
             )

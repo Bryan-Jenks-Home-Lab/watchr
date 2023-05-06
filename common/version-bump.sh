@@ -14,4 +14,10 @@ esac < /dev/tty
 
 git add pyproject.toml
 
-git commit -m "Bump version: $(poetry version -s)"
+git commit -m "⬆️ Bump version: $(poetry version -s)"
+
+if [[ $choice -eq 2 || $choice -eq 3 ]]; then
+    git tag "$(poetry version -s)" "$(git log --pretty=format:%H -n 1)"
+    git push origin "$(poetry version -s)"
+fi
+

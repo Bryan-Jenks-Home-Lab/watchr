@@ -2,7 +2,8 @@ import datetime as dt
 
 import pandas as pd
 from loguru import logger as log
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
 
 from config import Settings
 
@@ -23,22 +24,24 @@ def collect_deltas(df: pd.DataFrame, watermark: dt.datetime) -> pd.DataFrame:
     return filtered_df
 
 
+def generate_db_connection() -> None:
+    engine = create_engine(Settings().db_connection_string)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    return session
+
+
 def get_watermark() -> dt.datetime:
-    conn = generate_db_connection()
-    query = "SELECT MAX(date) FROM {};".format(Settings().target_table)
-    df = pd.read_sql_query(query, conn)
-    watermark = df.iloc[0, 0]
-    watermark = pd.Timestamp("1900-01-01") if watermark is None else watermark
+    query = text("SELECT MAX(date) FROM {};".format(Settings().target_table))
+    session = generate_db_connection()
+    result = session.execute(query).scalar()
+    watermark = pd.Timestamp("1900-01-01") if result is None else result
     return watermark
 
 
-def generate_db_connection() -> None:
-    return create_engine(Settings().db_connection_string)
-
-
 def append_data_to_target_table(df: pd.DataFrame, table: str, schema: str) -> None:
-    print(type(df))
-    print(df)
+    log.debug(type(df))
+    log.debug(df)
     if df.shape[0] != 0:
         log.info(f"Beginning data import to database table")
         df.to_sql(
