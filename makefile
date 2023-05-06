@@ -1,3 +1,4 @@
+# Color Variables
 NORMAL='\033[0;39m'
 BLACK='\033[0;30m'
 DARK_GRAY='\033[1;30m'
@@ -16,6 +17,8 @@ LIGHT_CYAN='\033[1;36m'
 LIGHT_GRAY='\033[0;37m'
 WHITE='\033[1;37m'
 NC=\033[0m # No Color
+
+# Application Variables
 APP_NAME=$(shell poetry version | cut -d' ' -f1)
 APP_VERSION=$(shell poetry version -s)
 DB_CONNECTION_STRING=$(shell dotenv get DB_CONNECTION_STRING)
