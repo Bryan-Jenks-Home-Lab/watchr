@@ -37,6 +37,7 @@ help:
 	@echo "🧹️${BLUE}make clean${NC} \t- Cleans up test artifacts"
 	@echo "🛠️ ${BLUE}make build${NC} \t- Builds the container"
 	@echo "🚀️${BLUE}make deploy${NC} \t- Deploys the container"
+	@echo "🔄️${BLUE}make update${NC} \t- Updates submodules"
 	@echo ""
 format:
 	@echo "\n🎨️ ${GREEN}Formatting Codebase${NC}\n"
@@ -81,3 +82,5 @@ deploy:
 	@echo "\n🚀️ ${GREEN}Beginning Deployment Process${NC}\n"
 	./common/version-bump.sh
 	@echo "\n🚀️ ${GREEN}Deployment Process Completed${NC}\n"
+update:
+	git submodule update --remote
