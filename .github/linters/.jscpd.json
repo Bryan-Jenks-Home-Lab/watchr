@@ -1,0 +1,11 @@
+{
+  "threshold": 20,
+  "reporters": [
+    "consoleFull"
+  ],
+  "ignore": [
+    "**/__snapshots__/**",
+    "**/.vscode/**"
+  ],
+  "absolute": true
+}

@@ -72,7 +72,6 @@ docker run -d \
 
 ---
 
-
 ### Outputs
 
 - Data Payload into target database table
@@ -81,6 +80,18 @@ docker run -d \
 ### Customers
 
 - Bryan
+
+## Development Environment setup <!-- DOC finish fleshing out this section -->
+
+### pre-commit hooks
+
+-
+
+### poetry
+
+-
+
+### makefile
 
 ## Deployment Details
 
