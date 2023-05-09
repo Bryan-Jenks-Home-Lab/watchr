@@ -1,91 +1,241 @@
-# Strong_App_Import
+# etl_strong_App
 
-## Purpose
+<!-- markdownlint-disable MD033-->
+<!-- Header & Preview Image -->
 
-Ingestion of a flat file export from the `Strong App` that i use for my workout tracking as there is no API to access said data.
+<h1 align="center">
+  <a href="https://www.strong.app/" target="_blank">
+    <img src="images/strongapp_banner.png" height="50%" width="50%">
+  </a>
+</h1>
 
-## SIPOC
+<!-- Shields -->
+<p align="center">
+  <a href="https://github.com/Bryan-Jenks-Home-Lab/etl_strong_app/blob/master/LICENSE">
+    <img src="https://img.shields.io/static/v1.svg?style=flat&label=License&message=Apache 2.0&logoColor=eceff4&logo=github&colorA=black&colorB=green"/>
+  </a>
+  <a href="https://github.com/psf/black">
+    <img src="https://img.shields.io/badge/code%20style-black-000000.svg"/>
+  </a>
+  <img src="https://img.shields.io/github/commit-activity/m/Bryan-Jenks-Home-Lab/etl_strong_app">
+  <a href="https://github.com/Bryan-Jenks-Home-Lab/etl_strong_app/graphs/contributors">
+    <img src="https://img.shields.io/github/contributors/Bryan-Jenks-Home-Lab/etl_strong_app"/>
+  </a>
+  <img src="https://img.shields.io/github/v/release/Bryan-Jenks-Home-Lab/etl_strong_app">
+  <a href="https://wakatime.com/badge/github/Bryan-Jenks-Home-Lab/etl_strong_app">
+    <img src="https://wakatime.com/badge/github/Bryan-Jenks-Home-Lab/etl_strong_app.svg"/>
+  </a>
+  <a href="https://github.com/marketplace/actions/super-linter">
+    <img src="https://github.com/Bryan-Jenks-Home-Lab/etl_strong_app/workflows/Lint%20Code%20Base/badge.svg"/>
+  </a>
+  <a href="https://interrogate.readthedocs.io/en/latest/">
+    <img src="images/interrogate_badge.svg"/>
+  </a>
+  <a href="https://github.com/Bryan-Jenks-Home-Lab/etl_strong_app/pulls">
+    <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?longCache=true" alt="Pull Requests">
+  </a>
+</p>
 
-### Scopes
+<!-- Description -->
 
-- Operations external to this containerized app take place in an SMB network share.
-  - The Ingestion, processing, and archival of a flat file export
-- The insert/upsert of data in/into the Postgres Database
--
+> <++>
 
-### Inputs
+<++>
 
-- Flat File Export
-  - With this naming convention: `strong.csv`
-  - into target location on client machine
-  - With the following Columns:
+---
 
-| Column                      | Data Definition     | Nullability |
-| --------------------------- | ------------------- | ----------- |
-| RowID^[Postgres Table Only] | BIGINT IDENTITY(11) | NOT NULL    |
-| Date                        | DATETIME2(7)        | NULL        |
-| [Workout Name]              | NVARCHAR(500)       | NULL        |
-| Duration                    | NVARCHAR(50)        | NULL        |
-| [Exercise Name]             | NVARCHAR(500)       | NULL        |
-| Set Order                   | TINYINT             | NULL        |
-| Weight                      | DECIMAL(18, 2)      | NULL        |
-| Reps                        | INT                 | NULL        |
-| Distance                    | INT                 | NULL        |
-| Seconds                     | INT                 | NULL        |
-| Notes                       | NVARCHAR(1000)      | NULL        |
-| [Workout Notes]             | NVARCHAR(1000)      | NULL        |
-| RPE                         | DECIMAL(3, 1)       | NULL        |
+## Table of Contents
 
-- Configuration variables govern the service's behavior
+---
 
-TODO provide list of variables and their uses
+- [etl_strong_App](#etl_strong_app)
+  - [Table of Contents](#table-of-contents)
+  - [Features](#features)
+  - [Requirements](#requirements)
+    - [Recommended](#recommended)
+  - [Installation](#installation)
+    - [Users](#users)
+    - [Contributors](#contributors)
+  - [Usage](#usage)
+    - [Example](#example)
+  - [Documentation](#documentation)
+  - [Resources](#resources)
+  - [Development](#development)
+    - [Security](#security)
+    - [Future](#future)
+    - [History](#history)
+    - [Community](#community)
+  - [Credits](#credits)
+  - [License](#license)
 
-### Process
+---
 
-TODO process documentation
+## Features
+
+---
+
+[Return To Top](#table-of-contents)
+
+<++>
+
+---
+
+## Requirements
+
+---
+
+[Return To Top](#table-of-contents)
+
+<++>
+
+---
+
+### Recommended
+
+---
+
+[Return To Top](#table-of-contents)
+
+<++>
+
+---
 
 ## Installation
 
 ---
 
-Pull image from ghcr.io
+[Return To Top](#table-of-contents)
 
-```sh
-docker pull ghcr.io/bryan-jenks-home-lab/etl_strong_app:main
-```
-
-Run image
-
-```sh
-docker run -d \
-    -e DB_CONNECTION_STRING='postgresql+psycopg2://<USER>:<PASSWORD>@<SERVER>:<PORT>/<DATABASE>' \
-    -e EXPECTED_FILE=strong.csv \
-    -e TARGET_TABLE=<DATABASE>.<SCHEMA>.<TABLE_NAME> \
-    -e WATCH_PATH=/data/inbound \
-    -e STAGING_PATH=/data/outbound \
-    -e PROCESSED_PATH=/data/processed \
-    -v /<PATH_ON_YOUR_MACHINE>/strong_app_import/inbound:/data/inbound \
-    -v /<PATH_ON_YOUR_MACHINE>/strong_app_import/outbound:/data/outbound \
-    -v /<PATH_ON_YOUR_MACHINE>/strong_app_import/processed:/data/processed \
-    ghcr.io/bryan-jenks-home-lab/etl_strong_app:main
-```
+<++>
 
 ---
 
+### Users
 
-### Outputs
+---
 
-- Data Payload into target database table
-- Archived Flat File Export `strong.csv` in archival directory
+[Return To Top](#table-of-contents)
 
-### Customers
+<++>
 
-- Bryan
+See [Usage](#usage)
 
-## Deployment Details
+---
 
-- Environmental variables that need to be passed to the container should be placed in the portainer docker-compose stack interface and fed to the container
+### Contributors
 
-## Roadmap
+---
 
-- P1 Need to get OAuth 2.0 setup for security on these API's
+[Return To Top](#table-of-contents)
+
+See [CONTRIBUTING](CONTRIBUTING.md)
+
+---
+
+## Usage
+
+---
+
+[Return To Top](#table-of-contents)
+
+<++>
+
+---
+
+### Example
+
+---
+
+[Return To Top](#table-of-contents)
+
+<++>
+
+---
+
+## Documentation
+
+---
+
+[Return To Top](#table-of-contents)
+
+<++>
+
+---
+
+## Resources
+
+---
+
+[Return To Top](#table-of-contents)
+
+<++>
+
+---
+
+## Development
+
+---
+
+[Return To Top](#table-of-contents)
+
+<++>
+
+See [Road Map](ROADMAP.md)
+
+---
+
+### Security
+
+---
+
+[Return To Top](#table-of-contents)
+
+See [SECURITY](SECURITY.md)
+
+---
+
+### Future
+
+[Return To Top](#table-of-contents)
+
+See [ROADMAP](ROADMAP.md)
+
+---
+
+### History
+
+[Return To Top](#table-of-contents)
+
+See [RELEASES](https://github.com/Bryan-Jenks-Home-Lab/etl_strong_app/releases)
+
+---
+
+### Community
+
+---
+
+[Return To Top](#table-of-contents)
+
+<++>
+
+See [CODE OF CONDUCT](CODE_OF_CONDUCT.md)
+
+---
+
+## Credits
+
+---
+
+[Return To Top](#table-of-contents)
+
+See [AUTHORS](AUTHORS.md)
+
+---
+
+## License
+
+---
+
+[Return To Top](#table-of-contents)
+
+See [LICENSE](LICENSE)

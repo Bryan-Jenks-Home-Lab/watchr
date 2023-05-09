@@ -1,3 +1,4 @@
+# Color Variables
 NORMAL='\033[0;39m'
 BLACK='\033[0;30m'
 DARK_GRAY='\033[1;30m'
@@ -16,6 +17,8 @@ LIGHT_CYAN='\033[1;36m'
 LIGHT_GRAY='\033[0;37m'
 WHITE='\033[1;37m'
 NC=\033[0m # No Color
+
+# Application Variables
 APP_NAME=$(shell poetry version | cut -d' ' -f1)
 APP_VERSION=$(shell poetry version -s)
 DB_CONNECTION_STRING=$(shell dotenv get DB_CONNECTION_STRING)
@@ -34,6 +37,7 @@ help:
 	@echo "🧹️${BLUE}make clean${NC} \t- Cleans up test artifacts"
 	@echo "🛠️ ${BLUE}make build${NC} \t- Builds the container"
 	@echo "🚀️${BLUE}make deploy${NC} \t- Deploys the container"
+	@echo "🔄️${BLUE}make update${NC} \t- Updates submodules"
 	@echo ""
 format:
 	@echo "\n🎨️ ${GREEN}Formatting Codebase${NC}\n"
@@ -44,7 +48,9 @@ run:
 	poetry run python3 src/main.py
 test:
 	@echo "\n🧪️ ${GREEN}Running Test Suite${NC}\n"
-	poetry run python3 -m pytest --verbose
+	pre-commit install
+	pre-commit autoupdate
+	poetry run python3 -m pytest
 	@echo "\n🧪️ ${GREEN}Cleaning Up Test Suite Artifacts${NC}\n"
 	@$(MAKE) clean
 	@echo "\n🧪️ ${GREEN}Test Suite Execution Completed${NC}\n"
@@ -76,5 +82,7 @@ build:
 	@echo "\n🛠️ ${GREEN}Build Process Completed${NC}\n"
 deploy:
 	@echo "\n🚀️ ${GREEN}Beginning Deployment Process${NC}\n"
-	./common/version-bump.sh
+	./common/utilities/version-bump.sh
 	@echo "\n🚀️ ${GREEN}Deployment Process Completed${NC}\n"
+update:
+	git submodule update --remote
