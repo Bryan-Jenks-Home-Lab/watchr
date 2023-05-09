@@ -46,6 +46,10 @@ TODO process documentation
 
 ## Installation
 
+1. `python -m pip install poetry python-dotenv pre-commit`
+1. `pre-commit install`
+1. `pre-commit autoupdate`
+
 ---
 
 Pull image from ghcr.io
