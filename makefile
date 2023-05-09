@@ -48,7 +48,9 @@ run:
 	poetry run python3 src/main.py
 test:
 	@echo "\n🧪️ ${GREEN}Running Test Suite${NC}\n"
-	poetry run python3 -m pytest --verbose
+	pre-commit install
+	pre-commit autoupdate
+	poetry run python3 -m pytest
 	@echo "\n🧪️ ${GREEN}Cleaning Up Test Suite Artifacts${NC}\n"
 	@$(MAKE) clean
 	@echo "\n🧪️ ${GREEN}Test Suite Execution Completed${NC}\n"
@@ -80,7 +82,7 @@ build:
 	@echo "\n🛠️ ${GREEN}Build Process Completed${NC}\n"
 deploy:
 	@echo "\n🚀️ ${GREEN}Beginning Deployment Process${NC}\n"
-	./common/version-bump.sh
+	./common/utilities/version-bump.sh
 	@echo "\n🚀️ ${GREEN}Deployment Process Completed${NC}\n"
 update:
 	git submodule update --remote

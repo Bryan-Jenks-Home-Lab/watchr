@@ -1,11 +1,10 @@
 import datetime as dt
 
 import pandas as pd
+from config import Settings
 from loguru import logger as log
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
-
-from config import Settings
 
 
 def load_data_into_dataframe(file_path: str) -> pd.DataFrame:
