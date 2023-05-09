@@ -6,7 +6,7 @@ authors = ["Bryan Jenks <bryan@bryanjenks.dev>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-pandas = "^1.5.1"
+pandas = "^2.0.1"
 loguru = "^0.6.0"
 watchdog = "^3.0.0"
 psycopg2-binary = "^2.9.5"
