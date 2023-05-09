@@ -34,7 +34,7 @@ repos:
       exclude: images/interrogate_badge.svg
     - id: end-of-file-fixer
       log_file: logs/hooks.log
-      exclude: img/interrogate_badge.svg
+      exclude: images/interrogate_badge.svg
     - id: check-docstring-first
       log_file: logs/hooks.log
     - id: requirements-txt-fixer

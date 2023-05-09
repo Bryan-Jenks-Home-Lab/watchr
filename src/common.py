@@ -23,7 +23,7 @@ def collect_deltas(df: pd.DataFrame, watermark: dt.datetime) -> pd.DataFrame:
     return filtered_df
 
 
-def generate_db_connection() -> None:
+def generate_db_connection() -> sessionmaker.object_session:
     engine = create_engine(Settings().db_connection_string)
     Session = sessionmaker(bind=engine)
     session = Session()
@@ -42,7 +42,7 @@ def append_data_to_target_table(df: pd.DataFrame, table: str, schema: str) -> No
     log.debug(type(df))
     log.debug(df)
     if df.shape[0] != 0:
-        log.info(f"Beginning data import to database table")
+        log.info("Beginning data import to database table")
         df.to_sql(
             name=table,
             con=generate_db_connection(),
@@ -50,6 +50,6 @@ def append_data_to_target_table(df: pd.DataFrame, table: str, schema: str) -> No
             if_exists="append",
             index=False,
         )
-        log.success(f"Data import completed")
+        log.success("Data import completed")
     else:
-        log.warning(f"No new data to import")
+        log.warning("No new data to import")

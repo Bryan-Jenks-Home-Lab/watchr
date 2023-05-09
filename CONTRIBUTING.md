@@ -17,7 +17,7 @@ Contributions are welcome, and they are greatly appreciated! Every little bit he
 
 ---
 
-### Bug Fixes, New Features and Documentation
+### BugFixes, New Features and Documentation
 
 ---
 
@@ -27,7 +27,7 @@ Contributions are welcome, and they are greatly appreciated! Every little bit he
 4. Create a `feature` branch off of the `dev` branch. `git switch -c feature dev`
 5. Make sure to have atomic commits and contextual commit messages using [Emoji-Log][3] for both the commit messages, and pull request titles.
 6. Keep Pull Requests small in scope (like a single feature per PR) to make approval and refactoring easier.
-7. Push your local `feature` branch to your remote repository on github `git push -u origin feature`
+7. Push your local `feature` branch to your remote repository on GitHub `git push -u origin feature`
 8. Open a [new merge/pull request][2] and in your pull request reference the issue the pull request is for by it's number, ex: `resolves #11`
 9. Pull Request must pass Linting, Unit Tests, and any other checks for a passing build to be considered ready for manual review and feedback.
 10. After review and feedback and any requested changes have been made, the pull request will be merged with the `dev` branch and be a part of the next release to `prod`

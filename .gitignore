@@ -6,7 +6,6 @@
 **/.DS_store
 .vscode/
 logs/
-img
 
 # temporary ignores
 test-and-build-azure-pipeline.yml
