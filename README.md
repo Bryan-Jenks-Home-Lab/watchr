@@ -128,7 +128,7 @@ See [Usage](#usage)
 
 [Return To Top](#table-of-contents)
 
-See [CONTRIBUTING](#contributing)
+See [CONTRIBUTING](CONTRIBUTING.md)
 
 ---
 

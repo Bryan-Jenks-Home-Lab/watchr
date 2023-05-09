@@ -103,4 +103,4 @@ docker run -d \
 
 ## Roadmap
 
-- P1 Need to get OAuth 2.0 setup for security on these API's
+- P1 Need to get OAuth 2.0 setup for security on these APIs
