@@ -23,16 +23,16 @@ def collect_deltas(df: pd.DataFrame, watermark: dt.datetime) -> pd.DataFrame:
     return filtered_df
 
 
-def generate_db_connection() -> sessionmaker.object_session:
-    engine = create_engine(Settings().db_connection_string)
+def generate_db_connection(connection_string) -> sessionmaker.object_session:
+    engine = create_engine(connection_string)
     Session = sessionmaker(bind=engine)
     session = Session()
     return session
 
 
-def get_watermark() -> dt.datetime:
-    query = text("SELECT MAX(date) FROM {};".format(Settings().target_table))
-    session = generate_db_connection()
+def get_watermark(target_table, connection_string) -> dt.datetime:
+    query = text("SELECT MAX(date) FROM {};".format(target_table))
+    session = generate_db_connection(connection_string)
     result = session.execute(query).scalar()
     watermark = pd.Timestamp("1900-01-01") if result is None else result
     return watermark

@@ -3,6 +3,8 @@ import time
 from datetime import datetime as dt
 
 import pandas as pd
+from config import Settings
+from database import WorkoutData
 from loguru import logger as log
 from watchdog.events import FileSystemEventHandler
 
@@ -15,8 +17,6 @@ from common import (
     get_watermark,
     load_data_into_dataframe,
 )
-from config import Settings
-from database import WorkoutData
 
 
 class MonitorFolder(FileSystemEventHandler):
@@ -47,7 +47,9 @@ class MonitorFolder(FileSystemEventHandler):
             try:
                 processed_data = collect_deltas(
                     load_data_into_dataframe(get_staged_file_full_path()),
-                    get_watermark(),
+                    get_watermark(
+                        Settings().target_table, Settings().db_connection_string
+                    ),
                 )
                 return processed_data
             except Exception as e:
