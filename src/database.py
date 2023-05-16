@@ -1,7 +1,6 @@
+from config import Settings
 from sqlalchemy import DECIMAL, Column, DateTime, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
-
-from config import Settings
 
 Base = declarative_base()
 
