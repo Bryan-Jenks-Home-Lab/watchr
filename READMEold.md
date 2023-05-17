@@ -1,4 +1,4 @@
-# Strong_App_Import
+# watchr
 
 ## Purpose
 
@@ -55,7 +55,7 @@ TODO process documentation
 Pull image from ghcr.io
 
 ```sh
-docker pull ghcr.io/bryan-jenks-home-lab/etl_strong_app:main
+docker pull ghcr.io/bryan-jenks-home-lab/watchr:main
 ```
 
 Run image
@@ -68,10 +68,10 @@ docker run -d \
     -e WATCH_PATH=/data/inbound \
     -e STAGING_PATH=/data/outbound \
     -e PROCESSED_PATH=/data/processed \
-    -v /<PATH_ON_YOUR_MACHINE>/strong_app_import/inbound:/data/inbound \
-    -v /<PATH_ON_YOUR_MACHINE>/strong_app_import/outbound:/data/outbound \
-    -v /<PATH_ON_YOUR_MACHINE>/strong_app_import/processed:/data/processed \
-    ghcr.io/bryan-jenks-home-lab/etl_strong_app:main
+    -v /<PATH_ON_YOUR_MACHINE>/watchr/inbound:/data/inbound \
+    -v /<PATH_ON_YOUR_MACHINE>/watchr/outbound:/data/outbound \
+    -v /<PATH_ON_YOUR_MACHINE>/watchr/processed:/data/processed \
+    ghcr.io/bryan-jenks-home-lab/watchr:main
 ```
 
 ---

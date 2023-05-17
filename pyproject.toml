@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "etl_strong_app"
+name = "watchr"
 version = "0.1.3"
 description = "Picking up and processing files for personal finances and accounting"
 authors = ["Bryan Jenks <bryan@bryanjenks.dev>"]

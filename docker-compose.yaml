@@ -1,8 +1,8 @@
 version: "3.7"
 services:
   data_importer:
-    image: tallguyjenks/strong_app_import:latest
-    container_name: strong_app_import
+    image: tallguyjenks/watchr:latest
+    container_name: watchr
     restart: unless-stopped
     networks:
       - proxy
