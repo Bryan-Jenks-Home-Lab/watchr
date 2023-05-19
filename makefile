@@ -45,11 +45,9 @@ format:
 	black ./src
 run:
 	@echo "\n🏃🏻‍♂️️ ${GREEN}Running Application${NC}\n"
-	poetry run python3 src/main.py
+	poetry run python3 src
 test:
 	@echo "\n🧪️ ${GREEN}Running Test Suite${NC}\n"
-	pre-commit install
-	pre-commit autoupdate
 	poetry run python3 -m pytest
 	@echo "\n🧪️ ${GREEN}Cleaning Up Test Suite Artifacts${NC}\n"
 	@$(MAKE) clean

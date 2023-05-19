@@ -1,11 +1,10 @@
-from config import Settings
 from sqlalchemy import DECIMAL, Column, DateTime, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
 
-class WorkoutData(Base):
+class AppleHealth(Base):
     __tablename__ = "Workout_data"
     __table_args__ = {"schema": "strongapp"}
     row_id = Column(Integer, primary_key=True, autoincrement=True)
@@ -21,14 +20,6 @@ class WorkoutData(Base):
     notes = Column(String)
     workout_notes = Column(String)
     rpe = Column(DECIMAL)
-
-    @classmethod
-    def set_table_name(self, table_name):
-        self.__tablename__ = table_name
-
-    @classmethod
-    def set_table_schema(self, schema_name):
-        self.__table_args__ = {"schema": schema_name}
 
     def __repr__(self):
         return (
@@ -49,8 +40,8 @@ class WorkoutData(Base):
             ")>".format(self=self)
         )
 
-    def validate_table_exists(self):
-        engine = create_engine(Settings().db_connection_string)
+    def validate_table_exists(self, connection_string):
+        engine = create_engine(connection_string)
         Base.metadata.create_all(
             engine
         )  # Create the tables if they do not already exist

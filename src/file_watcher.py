@@ -1,97 +1,56 @@
-import shutil
 import time
 from datetime import datetime as dt
 
-import pandas as pd
 from config import Settings
-from database import WorkoutData
 from loguru import logger as log
 from watchdog.events import FileSystemEventHandler
 
 # for explicit CIFS watching
 from watchdog.observers.polling import PollingObserver as Observer
 
-from common import (
-    append_data_to_target_table,
-    collect_deltas,
-    get_watermark,
-    load_data_into_dataframe,
-)
+# from src.common import get_processors
+from apple_health.service import process_apple_health_file
+from strong_app.service import process_oura_ring_file, process_strong_app_file
 
 
 class MonitorFolder(FileSystemEventHandler):
     def __init__(self) -> None:
-        log.info("Starting ETL Strong App")
-        db = WorkoutData()
-        db.set_table_name(Settings().target_table.split(".")[2])
-        db.set_table_schema(Settings().target_table.split(".")[1])
-        db.validate_table_exists()
+        log.info("Starting Watchr")
+        log.info("Validating Strong App Table Exists")
 
     def on_created(self, event):
-        def get_filename() -> str:
-            return event.src_path.split("/")[-1]
+        log.info(f"New file detected: '{event.src_path}'")
+        new_file = event.src_path.split("/")[-1]
 
-        log.info(f"New file detected: '{get_filename()}' at path: '{event.src_path}'")
+        # TODO change the process function into a class with methods and state
+        # make a parent class for inheritable methods
+        # in this function make it so the input file selects the correct class from a dictionary of key value pairs of key to class initializer
+        # then the same standard variable holds the instantiated class like `data_file = processors.get(new_file)()`
 
-        def get_staged_file_full_path() -> str:
-            return Settings().staging_path + "/" + get_filename()
+        # data_file = get_processors(new_file)(event.src_path)
 
-        def move_file_to_staging_location() -> None:
-            log.info(f"Copying '{get_filename()}' to '{get_staged_file_full_path()}'")
-            try:
-                shutil.move(event.src_path, get_staged_file_full_path())
-            except Exception as e:
-                log.error(e)
-
-        def process_data() -> pd.DataFrame:
-            try:
-                processed_data = collect_deltas(
-                    load_data_into_dataframe(get_staged_file_full_path()),
-                    get_watermark(
-                        Settings().target_table, Settings().db_connection_string
-                    ),
+        try:
+            if new_file == Settings().strong_app_file:
+                process_strong_app_file(event.src_path)
+            elif new_file == Settings().apple_health_file:
+                process_apple_health_file(event.src_path)
+                # TODO - add apple health file processing
+            elif new_file == Settings().oura_file:
+                ...  # TODO - add oura ring file processing
+            else:
+                log.warning(
+                    f"File '{new_file}' does not match the expected filename. Skipping..."
                 )
-                return processed_data
-            except Exception as e:
-                log.error(e)
-
-        def get_processed_file_full_path() -> str:
-            return (
-                Settings().processed_path
-                + "/"
-                + str(dt.today().strftime("%Y-%m-%d %H%M"))
-                + "_"
-                + get_filename()
-            )
-
-        def move_file_to_processed() -> None:
-            log.info(f"Moving '{get_filename()}' to '{get_processed_file_full_path()}'")
-            try:
-                shutil.move(get_staged_file_full_path(), get_processed_file_full_path())
-            except Exception as e:
-                log.error(e)
-
-        ###########################################################################
-
-        if get_filename() == Settings().expected_file:
-            move_file_to_staging_location()
-            append_data_to_target_table(
-                process_data(),
-                schema=Settings().target_table.split(".")[1],
-                table=Settings().target_table.split(".")[2],
-            )
-            move_file_to_processed()
-        else:
-            log.warning(
-                f"File '{get_filename()}' does not match the expected filename. Skipping..."
-            )
+        except Exception as e:
+            log.error(e)
 
     # def on_modified(self, event):
     #     # print(event.event_type, event.src_path, sep='\t')
     #     pass
+
     # def on_deleted(self, event):
-    #     # print(event.event_type, event.src_path, sep='\t\t')
-    #     pass
+    #     log.info(event.src_path.split("/")[-1] + " was deleted")
+
     def start(self) -> None:
         event_handler = MonitorFolder()
         watch_path = Settings().watch_path

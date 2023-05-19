@@ -10,3 +10,5 @@ logs/
 # temporary ignores
 test-and-build-azure-pipeline.yml
 TODO.md
+output.csv
+eda.ipynb
