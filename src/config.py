@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     db_connection_string: str = Field(..., env="DB_CONNECTION_STRING")
     log_level: str = Field(..., env="LOG_LEVEL")
 
+    pushover_user_key: str = Field(..., env="PUSHOVER_USER_KEY")
+    pushover_api_token: str = Field(..., env="PUSHOVER_API_TOKEN")
+
     watch_path: str = Field(..., env="WATCH_PATH")
     staging_path: str = Field(..., env="STAGING_PATH")
     processed_path: str = Field(..., env="PROCESSED_PATH")
