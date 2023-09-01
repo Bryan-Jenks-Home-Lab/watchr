@@ -1,5 +1,6 @@
 import sys
 
+import pretty_errors  # NOQA: F401
 from config import Settings
 from dotenv import load_dotenv
 from file_watcher import MonitorFolder

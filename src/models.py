@@ -11,6 +11,8 @@ from sqlalchemy.orm import sessionmaker
 
 
 class FileProcessor:
+    """The general file processor class that all other file processors inherit from including common methods and attributes."""
+
     def __init__(self, new_file: str) -> None:
         self.new_file = new_file
         self.file_name = self.get_filename(self.new_file)
@@ -19,6 +21,7 @@ class FileProcessor:
         self.conn = Settings().db_connection_string
 
     def load_csv_into_df(self, file_path: str) -> pd.DataFrame:
+        """Load a CSV file into a Pandas DataFrame, replacing column names with spaces in them with underscores and lowercasing all column names."""
         df = pd.read_csv(file_path, sep=",", header=0)
         df.columns = df.columns.str.replace(" ", "_").str.lower()
 
@@ -26,8 +29,12 @@ class FileProcessor:
         return df
 
     def collect_deltas(
-        self, df: pd.DataFrame, watermark: pd.Timestamp, date_field: str = "date"
+        self, df: pd.DataFrame, watermark: pd.Timestamp, date_field: str
     ) -> pd.DataFrame:
+        """Takes a Pandas DataFrame and returns a filtered DataFrame containing only records with a date greater than the watermark.
+        The watermark is the maximum date in the target table.
+        The provided date_field is the string name of the column containing the date field in the DataFrame.
+        """
         log.info("Determining data deltas...")
         df[date_field] = pd.to_datetime(df[date_field])
         log.debug(f"{watermark = }")
@@ -82,11 +89,13 @@ class FileProcessor:
         return Settings().staging_path + "/" + file_path
 
     def get_processed_file_full_path(self, file_name: str) -> str:
+        """Generate a full path to the processed file using the Settings class and the current timestamp prepended to the name of the now processed file."""
         path = Settings().processed_path
         timestamp = str(dt.datetime.today().strftime("%Y-%m-%d %H%M"))
         return path + "/" + timestamp + "_" + file_name
 
     def get_filename(self, file_path: str) -> str:
+        """Get the filename from a full path by splitting the string on the '/' character and returning the last element in the resulting list."""
         return file_path.split("/")[-1]
 
     def get_xml_file_root_element(self, xml_file: str) -> ET.Element:
@@ -95,12 +104,16 @@ class FileProcessor:
         return root
 
     def get_export_date(self, root: ET.Element) -> dt.datetime:
+        """There is a single ExportDate element in the XML file that contains the date and time the export was created."""
         export_date = dt.datetime.strptime(
             root.find(".//ExportDate").attrib.get("value"), "%Y-%m-%d %H:%M:%S %z"
         )
         return export_date
 
     def generate_mapping(self, table: str):
+        """Generate a mapping dictionary for the columns in the XML file to the columns in the target table.
+        The columns are converted to snake_case and lowercased and the mapping is returned as a dictionary with the column names as the keys and the target table column names as the values.
+        """
         mapping = {}
         if table == "records":
             columns = [
@@ -113,16 +126,6 @@ class FileProcessor:
                 "endDate",
                 "value",
                 "device",
-            ]
-        elif table == "clinical_records":
-            columns = [
-                "type",
-                "identifier",
-                "sourceName",
-                "sourceURL",
-                "fhirVersion",
-                "receivedDate",
-                "resourceFilePath",
             ]
 
         for column in columns:

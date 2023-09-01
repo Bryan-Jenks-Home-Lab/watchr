@@ -21,7 +21,7 @@ class MonitorFolder(FileSystemEventHandler):
         # This is fetching the correct class to process the file based on the file name without
         # a file extension and then the `(event.src_path)` portion is initializing the class
         # with the new file path
-        # All logic for file processing is contained within the __init__ method of the class
+        # All logic for file processing is contained within the __init__ method of the processor class
         get_processor(new_file_name_only)(event.src_path)
 
     def start(self) -> None:

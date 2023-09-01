@@ -44,7 +44,7 @@ Contributions are welcome, and they are greatly appreciated! Every little bit he
 
 I'll try to be as responsive as possible in reviewing and accepting pull requests. I appreciate your contributions very much!
 
-[0]: https://github.com/Bryan-Jenks-Home-Lab/etl_strong_app/discussions
-[1]: https://github.com/Bryan-Jenks-Home-Lab/etl_strong_app/issues/new/choose
-[2]: https://github.com/Bryan-Jenks-Home-Lab/etl_strong_app/compare
+[0]: https://github.com/Bryan-Jenks-Home-Lab/watchr/discussions
+[1]: https://github.com/Bryan-Jenks-Home-Lab/watchr/issues/new/choose
+[2]: https://github.com/Bryan-Jenks-Home-Lab/watchr/compare
 [3]: https://github.com/ahmadawais/Emoji-Log

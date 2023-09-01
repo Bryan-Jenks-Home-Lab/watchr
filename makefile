@@ -57,6 +57,8 @@ clean:
 	rm -rf **/.pytest_cache
 	rm -rf .pytest_cache
 	rm -rf **/__pycache__
+	rm -rf **/common_python/__pycache__
+	rm -rf **/apple_health/__pycache__
 	@echo "\n🧹️ ${GREEN}Cleaned${NC}\n"
 build:
 	@echo "\n🛠️ ${GREEN}Beginning Build Process${NC}\n"

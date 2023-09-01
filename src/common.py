@@ -1,20 +1,16 @@
 from loguru import logger as log
 
-from apple_health.models import (
-    AppleHealthClinicalRecordsProcessor,
-    AppleHealthProcessor,
-    AppleHealthRecordsProcessor,
-)
-from strong_app.models import StrongAppProcessor
+from apple_health.models import AppleHealthProcessor, AppleHealthRecordsProcessor
 
 
 # common functions
 def get_processor(file_name: str) -> dict[str, object]:
+    """Import all the processors that the application should use.ß
+    When a new file lands in the watched directory, take the file name with no extension and match that with the processor dictionary key to get the processor class.
+    """
     processors = dict(
-        strong=StrongAppProcessor,
-        export=AppleHealthProcessor,
-        records=AppleHealthRecordsProcessor,
-        clinical_records=AppleHealthClinicalRecordsProcessor,
+        export=AppleHealthProcessor,  # Process the export.zip file
+        records=AppleHealthRecordsProcessor,  # Process the contents of the export.zip file
     )
 
     try:
