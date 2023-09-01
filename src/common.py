@@ -1,15 +1,20 @@
 from loguru import logger as log
 
-from apple_health.models import AppleHealthProcessor
+from apple_health.models import (
+    AppleHealthClinicalRecordsProcessor,
+    AppleHealthProcessor,
+    AppleHealthRecordsProcessor,
+)
 from strong_app.models import StrongAppProcessor
 
 
 # common functions
 def get_processor(file_name: str) -> dict[str, object]:
-    # TODO change these functions into the classes
     processors = dict(
         strong=StrongAppProcessor,
         export=AppleHealthProcessor,
+        records=AppleHealthRecordsProcessor,
+        clinical_records=AppleHealthClinicalRecordsProcessor,
     )
 
     try:

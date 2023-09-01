@@ -24,5 +24,3 @@ class Settings(BaseSettings):
     apple_health_target_table_clinical_records: str = Field(
         ..., env="APPLE_HEALTH_TARGET_TABLE_CLINICAL_RECORDS"
     )
-
-    # TODO - add oura ring file and target table

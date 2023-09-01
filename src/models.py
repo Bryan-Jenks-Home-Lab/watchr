@@ -1,5 +1,7 @@
 import datetime as dt
+import re
 import shutil
+import xml.etree.ElementTree as ET
 
 import pandas as pd
 from config import Settings
@@ -24,7 +26,7 @@ class FileProcessor:
         return df
 
     def collect_deltas(
-        self, df: pd.DataFrame, watermark: dt.datetime, date_field: str = "date"
+        self, df: pd.DataFrame, watermark: pd.Timestamp, date_field: str = "date"
     ) -> pd.DataFrame:
         log.info("Determining data deltas...")
         df[date_field] = pd.to_datetime(df[date_field])
@@ -50,8 +52,9 @@ class FileProcessor:
         session = self.generate_db_session(connection_string)
         result = session.execute(query).scalar()
         watermark = (
-            pd.Timestamp("1900-01-01 00:00:00", tz="UTC") if result is None else result
+            pd.Timestamp(ts_input="1900-01-01 00:00:00") if result is None else result
         )
+        log.debug(f"{watermark = }")
         return watermark
 
     def append_data_to_target_table(
@@ -85,3 +88,48 @@ class FileProcessor:
 
     def get_filename(self, file_path: str) -> str:
         return file_path.split("/")[-1]
+
+    def get_xml_file_root_element(self, xml_file: str) -> ET.Element:
+        tree = ET.parse(xml_file)
+        root = tree.getroot()
+        return root
+
+    def get_export_date(self, root: ET.Element) -> dt.datetime:
+        export_date = dt.datetime.strptime(
+            root.find(".//ExportDate").attrib.get("value"), "%Y-%m-%d %H:%M:%S %z"
+        )
+        return export_date
+
+    def generate_mapping(self, table: str):
+        mapping = {}
+        if table == "records":
+            columns = [
+                "type",
+                "sourceName",
+                "sourceVersion",
+                "unit",
+                "creationDate",
+                "startDate",
+                "endDate",
+                "value",
+                "device",
+            ]
+        elif table == "clinical_records":
+            columns = [
+                "type",
+                "identifier",
+                "sourceName",
+                "sourceURL",
+                "fhirVersion",
+                "receivedDate",
+                "resourceFilePath",
+            ]
+
+        for column in columns:
+            name = column.replace(" ", "_")
+            name = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
+            name = re.sub("([a-z0-9])([A-Z])", r"\1_\2", name)
+            name = name.lower()
+            mapping[column] = name
+
+        return mapping

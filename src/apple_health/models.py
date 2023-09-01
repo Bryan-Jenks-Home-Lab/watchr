@@ -2,20 +2,21 @@ import datetime as dt
 import json
 import os
 import re
+import shutil
 import xml.etree.ElementTree as ET
 import zipfile
 
 import pandas as pd
+import pytz
 from config import Settings
 from loguru import logger as log
 from sqlalchemy import Column, DateTime, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 
+from common_python.pushover import Pushover
 from models import FileProcessor
 
 Base = declarative_base()
-
-# P1 - Apple Health Data split workflow so that it is taking the zip file and actually creating the 2 CSV's to be loaded into the database and then processing those 2 files separately under their own operations
 
 
 class AppleHealthRecords(Base):
@@ -80,96 +81,139 @@ class AppleHealthClinicalRecords(Base):
 
 
 class AppleHealthProcessor(FileProcessor):
-    def __init__(self, new_file) -> None:
+    def __init__(self, zip_file) -> None:
         # Zip file path passed to class contructor
-        # We do not neet to init the parent class as this is a special case of multiple tables from separate files in a zip
-        self.zip_file = new_file
-        # Database connection string for later uploads (this is cookie cutter and not table specific)
-        self.conn = Settings().db_connection_string
-        # There are two tables that we are going to be processing so we need 2 target table variables
-        self.records_target_table = Settings().apple_health_target_table_records
-        self.clinical_records_target_table = (
-            Settings().apple_health_target_table_clinical_records
+        log.debug(f"{zip_file = }")
+        staged_file = self.decompress_zip_file(zip_file)
+        root = self.get_xml_file_root_element(staged_file)
+        export_date = self.get_export_date(root)
+        records_df_columns = [
+            "type",
+            "sourceName",
+            "sourceVersion",
+            "unit",
+            "creationDate",
+            "startDate",
+            "endDate",
+            "value",
+            "device",
+        ]
+        clinical_records_df_columns = [
+            "type",
+            "identifier",
+            "sourceName",
+            "sourceURL",
+            "fhirVersion",
+            "receivedDate",
+            "resourceFilePath",
+        ]
+
+        records_df = self.make_dataframe_from_xml_query(
+            root, ".//Record", records_df_columns
         )
+        records_df.rename(columns=self.generate_mapping("records"), inplace=True)
+        records_df["imported_on"] = dt.datetime.now()
+        records_df["exported_on"] = export_date
+        clinical_records_df = self.make_dataframe_from_xml_query(
+            root, ".//ClinicalRecord", clinical_records_df_columns
+        )
+        clinical_records_df.rename(
+            columns=self.generate_mapping("clinical_records"), inplace=True
+        )
+        clinical_records_df["imported_on"] = dt.datetime.now()
+        clinical_records_df["exported_on"] = export_date
 
-        #################
+        # TODO add tqdm progress bar here for the file extraction
+        records_df.to_csv(Settings().watch_path + "/records.csv", index=False)
+        clinical_records_df.to_csv(
+            Settings().watch_path + "/clinical_records.csv", index=False
+        )
+        log.success("Processed Apple Health Data Zipfile into 2 CSV's")
 
-        # self.file_name = self.get_filename(self.new_file)
-        # self.staged_file = self.get_staged_file_full_path(self.file_name)
-        # self.processed_file = self.get_processed_file_full_path(self.file_name)
+    def decompress_zip_file(self, zip_file: str):
+        """Decompress a zip file to a specified directory and return the path to the decompressed directory"""
+        with zipfile.ZipFile(zip_file, "r") as zip_ref:
+            zip_ref.extractall(Settings().staging_path)
+            extracted_files = zip_ref.namelist()
+        # Grab the name of the decompressed folder and append it to the staging path
+        # in order to decompress it in the staging area
+        log.debug(f"{extracted_files[0] = }")
+        staged_directory = os.path.join(Settings().staging_path, extracted_files[0])
+        log.debug(f"{staged_directory = }")
+        # Delete the zip file from the inbound directory
+        os.remove(zip_file)
+        return staged_directory
+
+    def make_dataframe_from_xml_query(
+        self, root: ET.Element, query: str, columns: list
+    ) -> pd.DataFrame:
+        records_data = []
+        for record in root.findall(query):
+            records_data.append(list(record.attrib.values()))
+        df = pd.DataFrame(records_data, columns=columns)
+        return df
+
+
+class AppleHealthRecordsProcessor(FileProcessor):
+    def __init__(self, new_file: str) -> None:
+        log.info("AppleHealthRecordsProcessor")
+        # Move the file to the staging area
+        staged_file = self.get_staged_file_full_path(new_file.split("/")[-1])
+        self.move_file(new_file, staged_file)
+        # Check that the target database table exists
+        self.validate_target_table_exists()
+        # Load the data into a dataframe
+        df = self.load_csv_into_df(staged_file)
+        # Remove records with types that we do not want to import
+        # prevents import errors due to bad data from apple devices
+        records_to_keep = df["type"].isin(self.get_desired_record_types())
+        df = df[records_to_keep]
+        log.debug(f"{df.shape = }")
+        # Acquire the watermark for the target table
+        watermark = self.get_watermark(
+            target_table=Settings().apple_health_target_table_records,
+            connection_string=Settings().db_connection_string,
+            watermark_field="creation_date",
+        )
+        timezone = pytz.FixedOffset(-420)
+        watermark = watermark.replace(tzinfo=timezone)
+        log.debug(f"{watermark = }")
+        # Filter out the records that have already been imported
+        self.delta_df = self.collect_deltas(df, watermark, date_field="creation_date")
+        log.debug(f"{self.delta_df.shape = }")
+        # Organize the columns in the dataframe for the target table
+        self.delta_df = self.delta_df[self.get_table_columns()]
+        log.debug(f"{self.delta_df.columns = }")
+        # Rename the columns to match the target table
+        self.delta_df.rename(columns=self.generate_mapping("records"), inplace=True)
+        log.debug(f"{self.delta_df.columns}")
+        # Overwrite input file with only the deltas so retention doesnt grow exponentially
+        self.delta_df.to_csv(staged_file, index=False)
+        # Begin the data load process
+        log.info("Loading data to target table")
+        self.append_data_to_target_table(
+            self.delta_df,
+            Settings().apple_health_target_table_records,
+            Settings().db_connection_string,
+        )
+        # Move the file to the processed area
+        processed_file = self.get_processed_file_full_path(staged_file.split("/")[-1])
+        self.move_file(staged_file, processed_file)
+
+        log.success("Processed Apple Health Records Data")
+        self.send_notification()
 
     def validate_target_table_exists(self):
-        _, self.schema, self.table = self.records_target_table.split(".")
+        _, self.schema, self.table = Settings().apple_health_target_table_records.split(
+            "."
+        )
         apple_table = AppleHealthRecords()
         apple_table.set_table_schema(self.schema)
         apple_table.set_table_name(self.table)
-        apple_table.validate_table_exists(self.conn)
+        apple_table.validate_table_exists(Settings().db_connection_string)
 
-        _, self.schema, self.table = self.clinical_records_target_table.split(".")
-        apple_table = AppleHealthClinicalRecords()
-        apple_table.set_table_schema(self.schema)
-        apple_table.set_table_name(self.table)
-        apple_table.validate_table_exists(self.conn)
-
-    def move_file_to_staging(self):
-        """Decompress a zip file to a specified directory and return the path to the decompressed directory"""
-        with zipfile.ZipFile(self.zip_file, "r") as zip_ref:
-            zip_ref.extractall(Settings().staging_path)
-            extracted_files = zip_ref.namelist()
-        self.staged_file = os.path.join(Settings().staging_path, extracted_files[0])
-        # self.move_file_to_staging(self.zip_file, self.staged_file)
-        self.staged_zip_file = (
-            Settings().staging_path + "/" + self.zip_file.split("/")[-1]
-        )
-        log.debug(f"{self.staged_zip_file = }")
-        self.move_file(self.zip_file, self.staged_zip_file)
-
-    def load_data_into_df(self):
-        # Class instance variables now set for the root xml element and the export date of the data
-        self._get_xml_file_root_element()
-        self._get_export_date()
-
-        self.table = self.records_target_table.split(".")[-1]
-        log.debug(f"{self.table = }")
-        self._get_target_search_string(
-            "records"
-        )  # Get the search string to parse for in the xml data base on the table name
-        log.debug(f"{self.target_search_string = }")
-        self.data = []
-        for record in self.root.findall(self.target_search_string):
-            self.data.append(list(record.attrib.values()))
-        self.records_df = pd.DataFrame(
-            self.data, columns=self._get_target_table_columns("records")
-        )
-
-        self.table = self.clinical_records_target_table.split(".")[-1]
-        log.debug(f"{self.table = }")
-        self._get_target_search_string(
-            "clinical_records"
-        )  # Get the search string to parse for in the xml data base on the table name
-        log.debug(f"{self.target_search_string = }")
-        self.data = []
-        # Parse the xml data into a dataframe
-        for record in self.root.findall(self.target_search_string):
-            self.data.append(list(record.attrib.values()))
-        self.clinical_records_df = pd.DataFrame(
-            self.data, columns=self._get_target_table_columns("clinical_records")
-        )
-
-    def process_the_data(self) -> pd.DataFrame:
-        # Get watermarks for each table
-        self.record_watermark = self.get_watermark(
-            target_table=self.records_target_table,
-            connection_string=self.conn,
-            watermark_field="end_date",
-        )
-        self.clinical_record_watermark = self.get_watermark(
-            target_table=self.clinical_records_target_table,
-            connection_string=self.conn,
-            watermark_field="received_date",
-        )
-
-        record_types = [
+    def get_desired_record_types(self) -> list[str]:
+        return [
             "HKQuantityTypeIdentifierBodyFatPercentage",
             "HKQuantityTypeIdentifierBodyMass",
             "HKQuantityTypeIdentifierBodyMassIndex",
@@ -193,191 +237,123 @@ class AppleHealthProcessor(FileProcessor):
             "HKQuantityTypeIdentifierWaistCircumference",
         ]
 
-        # records_to_remove = all(self.records_df["type"] not in record_types)
-        # self.records_df = self.records_df[~records_to_remove]
-        # del records_to_remove
-        records_to_keep = self.records_df["type"].isin(record_types)
-        self.records_df = self.records_df[records_to_keep]
-        log.debug(f"{self.records_df.shape = }")
-        # records_to_remove = (
-        #     pd.to_datetime(self.records_df["creationDate"]) < self.record_watermark
-        # )
-        # self.records_delta_data = self.records_df[~records_to_remove]
-
-        # Filter the dataframes based on the watermarks to just deltas
-        self.records_delta_data = self.collect_deltas(
-            self.records_df, self.record_watermark, date_field="creationDate"
-        )
-
-        log.debug(f"{self.records_delta_data.shape = }")
-
-        self.clinical_records_delta_data = self.collect_deltas(
-            self.clinical_records_df,
-            self.clinical_record_watermark,
-            date_field="receivedDate",
-        )
-
-        log.debug(f"{self.clinical_records_delta_data.shape = }")
-
-        # Add additional metadata columns to the dataframes
-        self.records_delta_data["imported_on"] = dt.datetime.now()
-        self.records_delta_data["exported_on"] = self.export_date
-
-        self.clinical_records_delta_data["imported_on"] = dt.datetime.now()
-        self.clinical_records_delta_data["exported_on"] = self.export_date
-
-        self.records_final_column_order = (
-            ["imported_on"]
-            + ["exported_on"]
-            + self._get_target_table_columns("records")
-        )
-        self.clinical_records_final_column_order = [
+    def get_table_columns(self) -> list[str]:
+        return [
             "imported_on",
             "exported_on",
-        ] + self._get_target_table_columns("clinical_records")
-
-        # Add the json data to the clinical records dataframe
-        # records table has to go first as the clinical records table will mutate the final column list variable
-        self.records_delta_data = self.records_delta_data[
-            self.records_final_column_order
+            "type",
+            "source_name",
+            "source_version",
+            "unit",
+            "creation_date",
+            "start_date",
+            "end_date",
+            "value",
+            "device",
         ]
-        log.debug(f"{self.records_delta_data.columns = }")
-        log.debug(f"{self.records_delta_data.shape = }")
 
-        # TODO LEFT OFF HERE <++>
+    def send_notification(self):
+        notification_data = dict(
+            token=Settings().pushover_api_token,
+            user=Settings().pushover_user_key,
+            title="Apple Health Records Data Import",
+            message=f"Successfully imported {self.delta_df.shape[0]} rows of data",
+        )
+        pushover = Pushover(**notification_data)
+        pushover.send_notification()
 
+
+class AppleHealthClinicalRecordsProcessor(FileProcessor):
+    def __init__(self, new_file: str) -> None:
+        log.info("AppleHealthClinicalRecordsProcessor")
+        # Move the file to the staging area
+        staged_file = self.get_staged_file_full_path(new_file.split("/")[-1])
+        self.move_file(new_file, staged_file)
+        # Check that the target database table exists
+        self.validate_target_table_exists()
+        # Load the data into a dataframe
+        df = self.load_csv_into_df(staged_file)
+        log.debug(f"{df.shape = }")
+        # Acquire the watermark for the target table
+        watermark = self.get_watermark(
+            target_table=Settings().apple_health_target_table_clinical_records,
+            connection_string=Settings().db_connection_string,
+            watermark_field="received_date",
+        )
+        timezone = pytz.FixedOffset(-420)
+        watermark = watermark.replace(tzinfo=timezone)
+        log.debug(f"{watermark = }")
+        # Filter out the records that have already been imported
+        self.delta_df = self.collect_deltas(df, watermark, date_field="received_date")
+        log.debug(f"{self.delta_df.shape = }")
+        # Add the json data to the clinical records dataframe
         log.info("Adding json data to clinical records dataframe")
-
-        for index, row in self.clinical_records_delta_data.iterrows():
+        for index, row in self.delta_df.iterrows():
             json_file_path = (
                 Settings().staging_path
                 + "/apple_health_export"
-                + row["resourceFilePath"]
+                + row["resource_file_path"]
             )
-
             log.debug(f"{json_file_path = }")
             with open(json_file_path) as file:
                 json_data = str(json.load(file))
-                self.clinical_records_delta_data.loc[index, "json"] = [json_data]
+                self.delta_df.loc[index, "json"] = [json_data]
+        # Organize the columns in the dataframe for the target table
+        log.debug(f"{self.delta_df.columns = }")
+        self.delta_df = self.delta_df[self.get_table_columns()]
+        # Rename the columns to match the target table
+        self.delta_df.rename(
+            columns=self.generate_mapping("clinical_records"), inplace=True
+        )
+        log.debug(f"{self.delta_df.columns = }")
+        # Overwrite input file with only the deltas so retention doesnt grow exponentially
+        self.delta_df.to_csv(staged_file, index=False)
+        # Begin the data load process
+        log.info("Loading data to target table")
+        self.append_data_to_target_table(
+            self.delta_df,
+            Settings().apple_health_target_table_clinical_records,
+            Settings().db_connection_string,
+        )
+        # Move the file to the processed area
+        processed_file = self.get_processed_file_full_path(staged_file.split("/")[-1])
+        self.move_file(staged_file, processed_file)
+        # Remove the apple_health_export directory and tidy up before finishing
+        shutil.rmtree(Settings().staging_path + "/apple_health_export")
+        log.success("Processed Apple Health Clinical Records Data")
+        self.send_notification()
 
-        self.clinical_records_delta_data = self.clinical_records_delta_data[
-            self.clinical_records_final_column_order + ["json"]
+    def validate_target_table_exists(self):
+        (
+            _,
+            self.schema,
+            self.table,
+        ) = Settings().apple_health_target_table_clinical_records.split(".")
+        apple_table = AppleHealthClinicalRecords()
+        apple_table.set_table_schema(self.schema)
+        apple_table.set_table_name(self.table)
+        apple_table.validate_table_exists(Settings().db_connection_string)
+
+    def get_table_columns(self) -> list[str]:
+        return [
+            "imported_on",
+            "exported_on",
+            "type",
+            "identifier",
+            "source_name",
+            "source_url",
+            "fhir_version",
+            "received_date",
+            "resource_file_path",
+            "json",
         ]
 
-        log.debug("Made it to column renaming")
-        # Format the column names as they will be reflected in the database
-
-        log.debug(f"{self.records_delta_data.columns}")
-        self.records_delta_data.rename(
-            columns=self._generate_mapping("records"), inplace=True
-        )
-        log.debug(f"{self.records_delta_data.columns}")
-
-        log.debug(f"{self.clinical_records_delta_data.columns}")
-        self.clinical_records_delta_data.rename(
-            columns=self._generate_mapping("clinical_records"), inplace=True
-        )
-        log.debug(f"{self.clinical_records_delta_data.columns}")
-
-    def upload_new_data_to_target_table(self) -> None:
-        self.append_data_to_target_table(
-            self.records_delta_data, self.records_target_table, self.conn
-        )
-        self.append_data_to_target_table(
-            self.clinical_records_delta_data,
-            self.clinical_records_target_table,
-            self.conn,
-        )
-
-    def move_file_to_processed(self):
-        # TODO LEFT OFF HERE <++>
-        # TODO at this point i dont want to retain any of these files because of the size, and its full truncate and load, so just delete the files, the zip might also have been left in inbound, just in case check and remove it too
-        self.move_file(self.staged_file, self.processed_file)
-        log.critical("made it this far")
-        exit()
-
-    def notification_content(self):
+    def send_notification(self):
         notification_data = dict(
-            title="Apple Health Data Import",
-            message=f"Successfully imported {self.delta_data.shape[0]} rows of data",
+            token=Settings().pushover_api_token,
+            user=Settings().pushover_user_key,
+            title="Apple Health Clinical Records Data Import",
+            message=f"Successfully imported {self.delta_df.shape[0]} rows of data",
         )
-        return notification_data
-
-    def _get_xml_file_root_element(self) -> ET.Element:
-        tree = ET.parse(self.staged_file)
-        self.root = tree.getroot()
-
-    def _get_export_date(self) -> dt.datetime:
-        self.export_date = dt.datetime.strptime(
-            self.root.find(".//ExportDate").attrib.get("value"), "%Y-%m-%d %H:%M:%S %z"
-        )
-
-    def _get_target_table_columns(self, table: str) -> list:
-        if table == "records":
-            return [
-                "type",
-                "sourceName",
-                "sourceVersion",
-                "unit",
-                "creationDate",
-                "startDate",
-                "endDate",
-                "value",
-                "device",
-            ]
-        if table == "clinical_records":
-            return [
-                "type",
-                "identifier",
-                "sourceName",
-                "sourceURL",
-                "fhirVersion",
-                "receivedDate",
-                "resourceFilePath",
-            ]
-
-    def _get_target_search_string(self, table: str) -> str:
-        if table == "records":
-            self.target_search_string = ".//Record"
-        if table == "clinical_records":
-            self.target_search_string = ".//ClinicalRecord"
-
-    # def _camel_to_snake(self, name):
-    #     name = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
-    #     name = re.sub("([a-z0-9])([A-Z])", r"\1_\2", name)
-    #     name = name.lower()
-    #     return name
-
-    def _generate_mapping(self, table: str):
-        mapping = {}
-        if table == "records":
-            columns = [
-                "type",
-                "sourceName",
-                "sourceVersion",
-                "unit",
-                "creationDate",
-                "startDate",
-                "endDate",
-                "value",
-                "device",
-            ]
-        elif table == "clinical_records":
-            columns = [
-                "type",
-                "identifier",
-                "sourceName",
-                "sourceURL",
-                "fhirVersion",
-                "receivedDate",
-                "resourceFilePath",
-            ]
-
-        for column in columns:
-            name = column.replace(" ", "_")
-            name = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
-            name = re.sub("([a-z0-9])([A-Z])", r"\1_\2", name)
-            name = name.lower()
-            mapping[column] = name
-
-        return mapping
+        pushover = Pushover(**notification_data)
+        pushover.send_notification()

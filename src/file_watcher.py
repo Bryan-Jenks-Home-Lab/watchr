@@ -8,33 +8,21 @@ from watchdog.events import FileSystemEventHandler
 from watchdog.observers.polling import PollingObserver as Observer
 
 from common import get_processor
-from common_python.pushover import Pushover
 
 
 class MonitorFolder(FileSystemEventHandler):
     def __init__(self) -> None:
         log.info("Starting Watchr")
-        log.info("Validating Strong App Table Exists")
 
     def on_created(self, event):
         log.info(f"New file detected: '{event.src_path}'")
-        new_file = event.src_path.split("/")[-1].split(".")[0]
+        new_file_name_only = event.src_path.split("/")[-1].split(".")[0]
 
-        file_processor = get_processor(new_file)(event.src_path)
-
-        file_processor.validate_target_table_exists()
-        file_processor.move_file_to_staging()
-        file_processor.load_data_into_df()
-        file_processor.process_the_data()
-        file_processor.upload_new_data_to_target_table()
-        file_processor.move_file_to_processed()  # ⚠️
-        notification_data = dict(
-            token=Settings().pushover_api_token,
-            user=Settings().pushover_user_key,
-        )
-        notification_data.update(file_processor.notification_content())
-        pushover = Pushover(**notification_data)
-        pushover.send_notification()
+        # This is fetching the correct class to process the file based on the file name without
+        # a file extension and then the `(event.src_path)` portion is initializing the class
+        # with the new file path
+        # All logic for file processing is contained within the __init__ method of the class
+        get_processor(new_file_name_only)(event.src_path)
 
     def start(self) -> None:
         event_handler = MonitorFolder()

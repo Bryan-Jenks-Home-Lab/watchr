@@ -102,5 +102,3 @@ docker run -d \
 - Environmental variables that need to be passed to the container should be placed in the portainer docker-compose stack interface and fed to the container
 
 ## Roadmap
-
-- P1 Need to get OAuth 2.0 setup for security on these APIs

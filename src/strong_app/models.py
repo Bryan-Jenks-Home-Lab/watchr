@@ -3,6 +3,7 @@ from config import Settings
 from sqlalchemy import DECIMAL, Column, DateTime, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 
+from common_python.pushover import Pushover
 from models import FileProcessor
 
 Base = declarative_base()
@@ -48,6 +49,13 @@ class StrongAppProcessor(FileProcessor):
             target_table=self.target_table, connection_string=self.conn
         )
         _, self.schema, self.table = self.target_table.split(".")
+        self.validate_target_table_exists()
+        self.move_file_to_staging()
+        self.load_data_into_df()
+        self.process_the_data()
+        self.upload_new_data_to_target_table()
+        self.move_file_to_processed()
+        self.send_notification()
 
     def validate_target_table_exists(self):
         strong_app = WorkoutData()
@@ -70,9 +78,12 @@ class StrongAppProcessor(FileProcessor):
     def move_file_to_processed(self):
         self.move_file(self.staged_file, self.processed_file)
 
-    def notification_content(self):
+    def send_notification(self):
         notification_data = dict(
+            token=Settings().pushover_api_token,
+            user=Settings().pushover_user_key,
             title="Strong App Data Import",
             message=f"Successfully imported {self.delta_data.shape[0]} rows of data",
         )
-        return notification_data
+        pushover = Pushover(**notification_data)
+        pushover.send_notification()
