@@ -1,3 +1,6 @@
 [submodule "common"]
 	path = common
 	url = https://github.com/Bryan-Jenks-Home-Lab/common
+[submodule "src/common_python"]
+	path = src/common_python
+	url = https://github.com/Bryan-Jenks-Home-Lab/common_python

@@ -1,14 +1,13 @@
 version: "3.7"
 services:
-  data_importer:
+  watchr:
     image: tallguyjenks/watchr:latest
     container_name: watchr
     restart: unless-stopped
     networks:
-      - proxy
-    volumes:
-      - /mnt/sql:/mnt/sql
-      - /mnt/homelab:/mnt/homelab
+      proxy:
+        ipv4_address: 1.1.1.1
+    volumes: ["/mnt/homelab:/mnt/homelab"]
 
 networks:
   proxy:

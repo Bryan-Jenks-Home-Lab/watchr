@@ -1,11 +1,11 @@
-# watchr
+# Watchr
 
 <!-- markdownlint-disable MD033-->
 <!-- Header & Preview Image -->
 
 <h1 align="center">
-  <a href="https://www.strong.app/" target="_blank">
-    <img src="images/strongapp_banner.png" height="50%" width="50%">
+  <a href="https://www.apple.com/ios/health/" target="_blank">
+    <img src="images/applehealth.jpeg" height="50%" width="50%">
   </a>
 </h1>
 
@@ -38,9 +38,11 @@
 
 <!-- Description -->
 
-> <++>
+> `Watchr` Is a file watching service for importing records into a Postgres database.
 
-<++>
+Watchr is organized through the usage of Pydantic models to govern the behavior of how a file get processed, the actions around its artifact cleanup, and other configuration.
+
+This project is still rough and narrowly focused for my own personal use cases at the moment but in the future i may put forth more intention in making this more general and accessible to others.
 
 ---
 
@@ -48,7 +50,7 @@
 
 ---
 
-- [watchr](#watchr)
+- [Watchr](#watchr)
   - [Table of Contents](#table-of-contents)
   - [Features](#features)
   - [Requirements](#requirements)
@@ -148,7 +150,27 @@ See [CONTRIBUTING](CONTRIBUTING.md)
 
 [Return To Top](#table-of-contents)
 
-<++>
+Pull image from ghcr.io
+
+```sh
+docker pull ghcr.io/bryan-jenks-home-lab/etl_strong_app:main
+```
+
+Run image
+
+```sh
+docker run -d \
+    -e DB_CONNECTION_STRING='postgresql+psycopg2://<USER>:<PASSWORD>@<SERVER>:<PORT>/<DATABASE>' \
+    -e EXPECTED_FILE=strong.csv \
+    -e TARGET_TABLE=<DATABASE>.<SCHEMA>.<TABLE_NAME> \
+    -e WATCH_PATH=/data/inbound \
+    -e STAGING_PATH=/data/outbound \
+    -e PROCESSED_PATH=/data/processed \
+    -v /<PATH_ON_YOUR_MACHINE>/strong_app_import/inbound:/data/inbound \
+    -v /<PATH_ON_YOUR_MACHINE>/strong_app_import/outbound:/data/outbound \
+    -v /<PATH_ON_YOUR_MACHINE>/strong_app_import/processed:/data/processed \
+    ghcr.io/bryan-jenks-home-lab/etl_strong_app:main
+```
 
 ---
 
@@ -178,7 +200,9 @@ See [CONTRIBUTING](CONTRIBUTING.md)
 
 [Return To Top](#table-of-contents)
 
-<++>
+1. `python -m pip install poetry python-dotenv pre-commit`
+1. `pre-commit install`
+1. `pre-commit autoupdate`
 
 See [Road Map](ROADMAP.md)
 
